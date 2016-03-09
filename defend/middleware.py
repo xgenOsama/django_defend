@@ -98,7 +98,7 @@ class handling_middleware():
         alert_info += "IP: " + session_parameters['ip'] + self.NEWLINE
         alert_info += "User: " + str(session_parameters['user']) + self.NEWLINE
         alert_info += "Cookie: " + str(session_parameters['cookie']) + self.NEWLINE
-        # alert_info += "File: "
+        alert_info += "File: " + str(request.META['SCRIPT_NAME']) + self.NEWLINE
         alert_info += "URI: " + request.path + self.NEWLINE
         params = ''
         # for key in request.REQUEST.iterkeys():  # "for key in request.REQUEST" works too.
@@ -119,8 +119,7 @@ class handling_middleware():
         #     valuelist = request.REQUEST.getlist(key)
         #     params += ['%s=%s&' % (key, val) for val in valuelist]
         data = [(
-            str(datetime.datetime.now()), 'defend', session_parameters['ip'], '', str(session_parameters['cookie']),
-            None, request.path, params, attack, score)]
+            str(datetime.datetime.now()), 'defend', session_parameters['ip'], '', str(session_parameters['cookie']),str(request.META['SCRIPT_NAME']), request.get_full_path(), params, attack, score)]
         db.executemany(
             "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             data)
