@@ -69,6 +69,26 @@ class handling_middleware():
             return self.ERROR
         return self.OK
 
+    # check if the User-Agent is flagged as an attacker
+    def checkUserAgent(self, request):
+        attack = "Vulnerability scanner is user-agent"
+        score = 100
+        if request.META['HTTP_USER_AGENT']:
+            db = self.getDb().cursor()
+            results = db.execute("SELECT useragent FROM denyUserAgent")
+            for result in results.fetchall():
+                if request.META['HTTP_USER_AGENT'] in result[0]:
+                    self.attackDetected(attack, score, request)
+                    return self.ATTACK
+        else:
+            return self.ERROR
+        if request.session['user_agent'] is not None and request.META['HTTP_USER_AGENT']:
+            if request.session['user_agent'] != request.META['HTTP_USER_AGENT']:
+                attack = "User-agent changed during user session"
+                self.attackDetected(attack, score, request)
+                return self.ATTACK
+        return self.OK
+
     def checkHostname(self, request, hostname=None):
         attack = "Incorrect hostname"
         score = 100
