@@ -1,6 +1,7 @@
 import sqlite3
 import os.path
 import datetime
+from django.shortcuts import HttpResponse
 
 
 class handling_middleware():
@@ -111,6 +112,17 @@ class handling_middleware():
         else:
             return self.ERROR
         return self.OK
+
+    def checkFakeCookie(self, request, cookie_name="admin", cookie_value="false"):
+        attack = "False cookie modified"
+        score = 100
+        if request.COOKIES.has_key('admin') and request.COOKIES[cookie_name] != cookie_value:
+            self.attackDetected(attack, score, request)
+            return self.ATTACK
+        else:
+            response = HttpResponse()
+            response.set_cookie(cookie_name, cookie_value)
+            return self.OK
 
     def getSessionParameters(self, request):
         """
