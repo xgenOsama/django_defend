@@ -100,6 +100,18 @@ class handling_middleware():
             return self.ERROR
         return self.OK
 
+    # check if the ip address for the same cookie has changed
+    def checkConcurrentSession(self, requset):
+        attack = "The Ip address of the user changed for the cookie"
+        score = 25
+        if requset.session['REMOTE_ADDR'] is not None and requset.META['REMOTE_ADDR']:
+            if requset.session['REMOTE_ADDR'] != requset.META['REMOTE_ADDR']:
+                self.attackDetected(attack, score, requset)
+                return self.ERROR
+        else:
+            return self.ERROR
+        return self.OK
+
     def getSessionParameters(self, request):
         """
         Get the session stuff: IP, user (optional), cookie (optional)
