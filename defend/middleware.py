@@ -14,13 +14,12 @@ class handling_middleware():
 
     def process_request(self, request):
         self.checkHttpMethod(request, '')
-        self.getDb()
 
     def checkHttpMethod(self, request, method=""):
         attack = "Incorrect HTTP method"
         score = 25
         if request.method and method == "":
-            db = self.getDb()
+            db = self.getDb().cursor()
             results = db.execute("SELECT method FROM acceptHttpMethod")
             found = False
             if request.method in [result[0] for result in results.fetchall()]:
@@ -81,16 +80,18 @@ class handling_middleware():
 
     # Log the attack into the database
     def logAttack(self, attack, score, request):
-        db = self.getDb()
+        conn = self.getDb()
+        db = conn.cursor()
         session_parameters = self.getSessionParameters(request)
         params = ''
         # for key in request.REQUEST.iterkeys():  # "for key in request.REQUEST" works too.
         #     # Add filtering logic here.
         #     valuelist = request.REQUEST.getlist(key)
         #     params += ['%s=%s&' % (key, val) for val in valuelist]
-        data = [(str(datetime.datetime.now()), 'defend', session_parameters['ip'], '',session_parameters['cookie'], None, request.path, params, attack, score)]
+        data = [(str(datetime.datetime.now()), 'defend', session_parameters['ip'], '',str(session_parameters['cookie']), None, request.path, params, attack, score)]
         db.executemany(
             "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",data)
+        conn.commit()
 
     def alertAdmin(self, alert_info):
         if self.DEBUG:
@@ -121,5 +122,4 @@ class handling_middleware():
             conn.commit()
         else:
             conn = sqlite3.connect(self.DB)
-            db = conn.cursor()
-        return db
+        return conn
