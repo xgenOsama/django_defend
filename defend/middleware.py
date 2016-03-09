@@ -14,6 +14,7 @@ class handling_middleware():
 
     def process_request(self, request):
         self.checkHttpMethod(request, '')
+        self.checkURI(request)
 
     def checkHttpMethod(self, request, method=""):
         attack = "Incorrect HTTP method"
@@ -39,6 +40,23 @@ class handling_middleware():
             return self.ERROR
         return self.OK
 
+    # check if the url contains a string flagged as an attacker
+    def checkURI(self, request):
+        attack = "Vulnerabiliry scanner in URL"
+        score = 10
+        if request.path:
+            db = self.getDb().cursor()
+            results = db.execute("SELECT string FROM denyUrlString")
+            all_data = results.fetchall()
+            for word in request.get_full_path().split('/'):
+                for result in all_data:
+                    if str(word.lower()) == str(result[0].lower()):
+                        self.attackDetected(attack, score, request)
+                        return self.ATTACK
+        else:
+            return self.ERROR
+        return self.OK
+
     def getSessionParameters(self, request):
         """
         Get the session stuff: IP, user (optional), cookie (optional)
@@ -46,8 +64,8 @@ class handling_middleware():
         :return:
         """
         user = ''
-        if request.user is not None:
-            user = request.user
+        if request.user.is_authenticated():
+            user = request.user.email
         ip = '127.0.0.1'
         if request.META['REMOTE_ADDR'] is not None:
             ip = request.META['REMOTE_ADDR']
@@ -88,9 +106,12 @@ class handling_middleware():
         #     # Add filtering logic here.
         #     valuelist = request.REQUEST.getlist(key)
         #     params += ['%s=%s&' % (key, val) for val in valuelist]
-        data = [(str(datetime.datetime.now()), 'defend', session_parameters['ip'], '',str(session_parameters['cookie']), None, request.path, params, attack, score)]
+        data = [(
+            str(datetime.datetime.now()), 'defend', session_parameters['ip'], '', str(session_parameters['cookie']),
+            None, request.path, params, attack, score)]
         db.executemany(
-            "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",data)
+            "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            data)
         conn.commit()
 
     def alertAdmin(self, alert_info):
