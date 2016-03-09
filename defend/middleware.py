@@ -16,6 +16,7 @@ class handling_middleware():
     def process_request(self, request):
         self.checkHttpMethod(request, '')
         self.checkURI(request)
+        self.nonExistingFile(request)
         self.checkHTTPVersion(request)
 
     def checkHttpMethod(self, request, method=""):
@@ -100,6 +101,31 @@ class handling_middleware():
         else:
             return self.ERROR
         return self.OK
+
+
+    # check files extensions "denied and excepted"
+    def nonExistingFile(self, request):
+        attack = "Non existing file";
+        score = 5;
+        path = request.path
+
+        if request.path:
+            path_splited = path.split('/')
+            filee = path_splited[len(path_splited)-1]
+            filee = filee.split('.')
+            filee_extension = filee[len(filee)-1]
+            db = self.getDb().cursor()
+            extensions = db.execute("SELECT extension FROM denyExtension")
+            denied_extensions = extensions.fetchall()
+            for denied_ex in denied_extensions:
+                if str(filee_extension.lower()) == str(denied_ex[0].lower()):
+                    self.attackDetected(attack, score, request)
+                    return self.ATTACK
+                    break;
+        else:
+            return self.ERROR
+        return self.OK
+
 
     # check if the ip address for the same cookie has changed
     def checkConcurrentSession(self, requset):
