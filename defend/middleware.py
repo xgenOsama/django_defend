@@ -69,6 +69,17 @@ class handling_middleware():
             return self.ERROR
         return self.OK
 
+    def checkHostname(self, request, hostname=None):
+        attack = "Incorrect hostname"
+        score = 100
+        if hostname is not None:
+            if not request.META['SERVER_NAME'] or request.META['SERVER_NAME'] != hostname:
+                self.attackDetected(attack, score, request)
+                return self.ATTACK
+        else:
+            return self.ERROR
+        return self.OK
+
     def getSessionParameters(self, request):
         """
         Get the session stuff: IP, user (optional), cookie (optional)
@@ -119,7 +130,8 @@ class handling_middleware():
         #     valuelist = request.REQUEST.getlist(key)
         #     params += ['%s=%s&' % (key, val) for val in valuelist]
         data = [(
-            str(datetime.datetime.now()), 'defend', session_parameters['ip'], '', str(session_parameters['cookie']),str(request.META['SCRIPT_NAME']), request.get_full_path(), params, attack, score)]
+            str(datetime.datetime.now()), 'defend', session_parameters['ip'], '', str(session_parameters['cookie']),
+            str(request.META['SCRIPT_NAME']), request.get_full_path(), params, attack, score)]
         db.executemany(
             "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             data)
