@@ -15,6 +15,7 @@ class handling_middleware():
     def process_request(self, request):
         self.checkHttpMethod(request, '')
         self.checkURI(request)
+        self.checkHTTPVersion(request)
 
     def checkHttpMethod(self, request, method=""):
         attack = "Incorrect HTTP method"
@@ -53,6 +54,17 @@ class handling_middleware():
                     if str(word.lower()) == str(result[0].lower()):
                         self.attackDetected(attack, score, request)
                         return self.ATTACK
+        else:
+            return self.ERROR
+        return self.OK
+
+    def checkHTTPVersion(self, request):
+        attack = "Incorrect HTTP Version"
+        score = 100
+        if request.META['SERVER_PROTOCOL']:
+            if request.META['SERVER_PROTOCOL'] != 'HTTP/1.1':
+                self.attackDetected(attack, score, request)
+                return self.ATTACK
         else:
             return self.ERROR
         return self.OK
