@@ -1,7 +1,7 @@
 import sqlite3
 import os.path
 import datetime
-from django.shortcuts import HttpResponse
+from django.shortcuts import HttpResponseRedirect, render
 
 
 class handling_middleware():
@@ -18,6 +18,10 @@ class handling_middleware():
         self.checkURI(request)
         self.nonExistingFile(request)
         self.checkHTTPVersion(request)
+
+    def process_response(self, request, response):
+        self.checkFakeCookie(request, response)
+        return response
 
     def checkHttpMethod(self, request, method=""):
         attack = "Incorrect HTTP method"
@@ -137,15 +141,17 @@ class handling_middleware():
             return self.ERROR
         return self.OK
 
-    def checkFakeCookie(self, request, cookie_name="admin", cookie_value="false"):
+    def checkFakeCookie(self, request, response, cookie_name="admin", cookie_value="false"):
         attack = "False cookie modified"
         score = 100
-        if request.COOKIES.has_key('admin') and request.COOKIES[cookie_name] != cookie_value:
+        if request.COOKIES.has_key(cookie_name) and request.COOKIES[cookie_name] != cookie_value:
             self.attackDetected(attack, score, request)
             return self.ATTACK
         else:
-            response = HttpResponse()
-            response.set_cookie(cookie_name, cookie_value)
+            print 'i am setting cookie'
+            max_age = 365 * 24 * 60 * 60
+            expires = datetime.datetime.now() + datetime.timedelta(seconds=max_age)
+            response.set_cookie(cookie_name, cookie_value, expires=expires.utctimetuple(), max_age=max_age)
             return self.OK
 
     def checkFakeInput(self, request, input_name, value):
@@ -158,6 +164,12 @@ class handling_middleware():
         else:
             return self.ERROR
         return self.OK
+
+    def checkSpeed(self, request):
+        attack = "Too many requests"
+        score = 100
+        if request.session['amount_requests_last_minute'] or request.session['amount_requests_last_minute']:
+            pass
 
     def getSessionParameters(self, request):
         """
