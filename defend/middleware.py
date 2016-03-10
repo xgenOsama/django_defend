@@ -148,6 +148,17 @@ class handling_middleware():
             response.set_cookie(cookie_name, cookie_value)
             return self.OK
 
+    def checkFakeInput(self, request, input_name, value):
+        attack = "Fake input modified"
+        score = 100
+        if input_name and value and request.POST[input_name] and request.session[value]:
+            if request.POST[input_name] != request.session[value]:
+                self.attackDetected(attack, score, request)
+                return self.ATTACK
+        else:
+            return self.ERROR
+        return self.OK
+    
     def getSessionParameters(self, request):
         """
         Get the session stuff: IP, user (optional), cookie (optional)
