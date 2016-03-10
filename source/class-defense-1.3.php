@@ -46,7 +46,7 @@ class defense {
   function checkURI() {
     $attack = "Vulnerability scanner in URL";
     $score = 10;
-    
+
     if(isset($_SERVER["REQUEST_URI"])) {
       $db = $this->getDb();
       $results = $db->query("SELECT string FROM denyUrlString");
@@ -74,7 +74,7 @@ class defense {
       }
     } else
       return self::ERROR;
-    return self::OK;      
+    return self::OK;
   }
 
   // Check if the correct hostname is being used
@@ -101,7 +101,7 @@ class defense {
       $path = parse_url($_SERVER["REQUEST_URI"], PHP_URL_PATH);
       $path = explode("/", $path);
       $file = $path[count($path)-1];
-      $file = explode(".", $file);      
+      $file = explode(".", $file);
       $extension = $file[count($file)-1];
       $db = $this->getDb();
       $results = $db->query("SELECT extension FROM denyExtension");
@@ -123,7 +123,7 @@ class defense {
   function checkUserAgent() {
     $attack = "Vulnerability scanner in user-agent";
     $score = 100;
-    
+
     if(isset($_SERVER["HTTP_USER_AGENT"])) {
       $db = $this->getDb();
       $results = $db->query("SELECT useragent FROM denyUserAgent");
@@ -180,8 +180,8 @@ class defense {
     $attack = "Fake input modified";
     $score = "100";
 
-    if(isset($input) && isset($value) && isset($_REQUEST[$input]) && isset($_SESSION[$input])) {
-      if($_REQUEST[$input] != $_SESSION[$input]) {
+    if(isset($input) && isset($value) && isset($_REQUEST[$input])) {
+      if($_REQUEST[$input] != $value) {
         $this->attackDetected($attack, $score);
         return self::ATTACK;
       }
@@ -189,6 +189,7 @@ class defense {
       return self::ERROR;
     return self::OK;
   }
+
 
   // Check how many requests per minute the user sends
   function checkSpeed() {
@@ -220,7 +221,7 @@ class defense {
   function logoutSession() {
     // ...
   }
-  
+
   // Check what is the current score for the session (ip, user and/or cookie)
   function isAttacker() {
     $ban_in_seconds = 60 * 60 * 24;
