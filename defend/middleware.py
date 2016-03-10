@@ -10,7 +10,7 @@ class handling_middleware():
     ATTACK = -1
     BAN = 100
     DEBUG = True
-    DB = '/home/robot/marvel/django_defend/defend/attackers.sqlite3'
+    DB = 'attackers.sqlite3'
     NEWLINE = '\n'
 
     def process_request(self, request):
@@ -158,7 +158,7 @@ class handling_middleware():
         else:
             return self.ERROR
         return self.OK
-    
+
     def getSessionParameters(self, request):
         """
         Get the session stuff: IP, user (optional), cookie (optional)
