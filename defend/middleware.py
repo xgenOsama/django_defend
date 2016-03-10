@@ -3,7 +3,7 @@ import os.path
 import datetime
 import time
 from django.contrib.sessions.middleware import SessionMiddleware
-from django.http import HttpResponseRedirect
+from django.http import HttpResponsePermanentRedirect
 
 
 class handling_middleware():
@@ -14,16 +14,16 @@ class handling_middleware():
     DEBUG = True
     DB = 'attackers.sqlite3'
     NEWLINE = '\n'
-    REQUESTTIME = 0
 
     def process_request(self, request):
         if self.isAttacker(request):
-            return HttpResponseRedirect('/blocked')
+            if request.path != '/blocked':
+                return HttpResponsePermanentRedirect('/blocked')
         self.checkHttpMethod(request, '')
         self.checkURI(request)
         self.nonExistingFile(request)
         self.checkHTTPVersion(request)
-        self.checkSpeed(request)
+        # self.checkSpeed(request)
         request.session.save()
 
     def process_response(self, request, response):
@@ -152,6 +152,10 @@ class handling_middleware():
     def checkFakeCookie(self, request, response, cookie_name="admin", cookie_value="false"):
         attack = "False cookie modified"
         score = 100
+        db = self.getDb().cursor()
+        result = db.execute("SELECT id from attacker WHERE attack='" + attack + "'")
+        if result:
+            return
         if request.COOKIES.has_key(cookie_name) and request.COOKIES[cookie_name] != cookie_value:
             self.attackDetected(attack, score, request)
             return self.ATTACK
@@ -218,8 +222,10 @@ class handling_middleware():
         statment = db.execute(
             "SELECT SUM(score) AS total FROM attacker WHERE timestamp > " + timestamp + " AND " + extra)
         if statment.fetchone()[0] > self.BAN:
+            print 'i am true'
             return True
         else:
+            print 'i am false'
             return False
 
     def add_session_to_request(self, request):
@@ -281,8 +287,7 @@ class handling_middleware():
             str(datetime.datetime.now()), 'defend', session_parameters['ip'], '', str(session_parameters['cookie']),
             str(request.META['SCRIPT_NAME']), request.get_full_path(), params, attack, score)]
         db.executemany(
-            "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            data)
+            "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",data)
         conn.commit()
 
     def alertAdmin(self, alert_info):
