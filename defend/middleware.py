@@ -23,12 +23,13 @@ class handling_middleware():
         self.checkURI(request)
         self.nonExistingFile(request)
         self.checkHTTPVersion(request)
-        # self.checkSpeed(request)
+        self.checkSpeed(request)
         request.session.save()
 
     def process_response(self, request, response):
         self.checkFakeCookie(request, response)
         request.session.save()
+        request.session.modified = True
         return response
 
     def checkHttpMethod(self, request, method=""):
@@ -191,7 +192,7 @@ class handling_middleware():
             request.session.modified = True
             # self.add_session_to_request(request)
         print request.session.get('amount_requests_last_minute')
-        if request.session.get('amount_requests_last_minute') > (int(round(time.time())) + 60):
+        if request.session.get('amount_requests_last_minute') < (int(round(time.time())) - 60):
             print 'i am resetting the sessions now'
             request.session['amount_requests_last_minute_count'] = 0
             request.session['amount_requests_last_minute'] = int(round(time.time()))
@@ -201,7 +202,7 @@ class handling_middleware():
             # self.add_session_to_request(request)
         request.session['amount_requests_last_minute'] += 1
         request.session['amount_requests_last_minute_count'] += 1
-        if request.session['amount_requests_last_minute_count'] > 10:
+        if request.session['amount_requests_last_minute_count'] > 100:
             print 'i am an attacker'
             self.attackDetected(attack, score, request)
             return self.ATTACK
