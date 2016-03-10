@@ -287,7 +287,7 @@ class handling_middleware():
         #     valuelist = request.REQUEST.getlist(key)
         #     params += ['%s=%s&' % (key, val) for val in valuelist]
         data = [(
-            str(datetime.datetime.now()), 'defend', session_parameters['ip'], '', str(session_parameters['cookie']),
+            str(datetime.datetime.now()), 'defend', session_parameters['ip'], session_parameters['user'], str(session_parameters['cookie']),
             str(request.META['SCRIPT_NAME']), request.get_full_path(), params, attack, score)]
         db.executemany(
             "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
