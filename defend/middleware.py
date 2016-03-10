@@ -250,8 +250,10 @@ class handling_middleware():
         if request.META['REMOTE_ADDR'] is not None:
             ip = request.META['REMOTE_ADDR']
         cookie = ''
-        if request.COOKIES.get('logged_in_status') is not None:
-            cookie = request.COOKIES.get('logged_in_status')
+        if request.COOKIES:
+            for key in request.COOKIES.iterkeys():  # "for key in request.REQUEST" works too.
+                val = request.COOKIES.get(key)
+                cookie += '%s=%s&' % (key, val)
         return {'user': user, 'ip': ip, 'cookie': cookie}
 
     def attackDetected(self, attack, score, request):
