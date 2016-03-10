@@ -1,7 +1,7 @@
 import sqlite3
 import os.path
 import datetime
-from django.shortcuts import HttpResponseRedirect, render
+import time
 
 
 class handling_middleware():
@@ -12,12 +12,14 @@ class handling_middleware():
     DEBUG = True
     DB = 'attackers.sqlite3'
     NEWLINE = '\n'
+    REQUESTTIME = 0
 
     def process_request(self, request):
         self.checkHttpMethod(request, '')
         self.checkURI(request)
         self.nonExistingFile(request)
         self.checkHTTPVersion(request)
+        self.checkSpeed(request)
 
     def process_response(self, request, response):
         self.checkFakeCookie(request, response)
@@ -148,7 +150,6 @@ class handling_middleware():
             self.attackDetected(attack, score, request)
             return self.ATTACK
         else:
-            print 'i am setting cookie'
             max_age = 365 * 24 * 60 * 60
             expires = datetime.datetime.now() + datetime.timedelta(seconds=max_age)
             response.set_cookie(cookie_name, cookie_value, expires=expires.utctimetuple(), max_age=max_age)
@@ -165,11 +166,28 @@ class handling_middleware():
             return self.ERROR
         return self.OK
 
+    # check if there is many requests per seconds
+    # ab -n 1000 -c 5 http://127.0.0.1:8000/
     def checkSpeed(self, request):
-        attack = "Too many requests"
+        attack = "Too many requests per minute"
         score = 100
-        if request.session['amount_requests_last_minute'] or request.session['amount_requests_last_minute']:
-            pass
+        if 'amount_requests_last_minute' not in request.session or 'amount_requests_last_minute_count' not in request.session:
+            print 'i am setting the session now'
+            request.session['amount_requests_last_minute'] = int(round(time.time()))
+            request.session['amount_requests_last_minute_count'] = 0
+            request.session.set_expiry(300)  # 300 seconds 5 minutes
+        if request.session['amount_requests_last_minute'] > (int(round(time.time())) + 60):
+            print 'i am resetting the sessions now'
+            request.session['amount_requests_last_minute_count'] = 0
+            request.session['amount_requests_last_minute'] = int(round(time.time()))
+            request.session.set_expiry(300)  # 300 seconds 5 minutes
+        request.session['amount_requests_last_minute'] += 1
+        request.session['amount_requests_last_minute_count'] += 1
+        if request.session['amount_requests_last_minute_count'] > 10:
+            print 'i am an attacker'
+            self.attackDetected(attack, score, request)
+            return self.ATTACK
+        return self.OK
 
     def getSessionParameters(self, request):
         """
