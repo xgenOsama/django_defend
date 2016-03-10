@@ -3,6 +3,7 @@ import os.path
 import datetime
 import time
 from django.contrib.sessions.middleware import SessionMiddleware
+from django.http import HttpResponseRedirect
 
 
 class handling_middleware():
@@ -16,6 +17,8 @@ class handling_middleware():
     REQUESTTIME = 0
 
     def process_request(self, request):
+        if self.isAttacker(request):
+            return HttpResponseRedirect('/blocked')
         self.checkHttpMethod(request, '')
         self.checkURI(request)
         self.nonExistingFile(request)
@@ -199,6 +202,25 @@ class handling_middleware():
             self.attackDetected(attack, score, request)
             return self.ATTACK
         return self.OK
+
+    def isAttacker(self, request):
+        ban_in_seconds = 60 * 60 * 24
+        conn = self.getDb()
+        db = conn.cursor()
+        sessions_parameter = self.getSessionParameters(request)
+        extra = " ip = '" + str(sessions_parameter['ip']) + "'"
+        if sessions_parameter['user']:
+            extra += " or user = '" + sessions_parameter['user'] + "'"
+        if sessions_parameter['cookie']:
+            extra += " or cookie = '" + sessions_parameter['user'] + "'"
+        timestamp = str(int(round(time.time())) - ban_in_seconds)
+        print extra
+        statment = db.execute(
+            "SELECT SUM(score) AS total FROM attacker WHERE timestamp > " + timestamp + " AND " + extra)
+        if statment.fetchone()[0] > self.BAN:
+            return True
+        else:
+            return False
 
     def add_session_to_request(self, request):
         """Annotate a request object with a session"""
