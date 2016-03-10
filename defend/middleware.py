@@ -16,9 +16,9 @@ class handling_middleware():
     NEWLINE = '\n'
 
     def process_request(self, request):
-        if self.isAttacker(request):
-            if request.path != '/blocked':
-                return HttpResponsePermanentRedirect('/blocked')
+        # if self.isAttacker(request):
+        #     if request.path != '/blocked':
+        #         return HttpResponsePermanentRedirect('/blocked')
         self.checkHttpMethod(request, '')
         self.checkURI(request)
         self.nonExistingFile(request)
@@ -270,26 +270,37 @@ class handling_middleware():
         alert_info += "Cookie: " + str(session_parameters['cookie']) + self.NEWLINE
         alert_info += "File: " + str(request.META['SCRIPT_NAME']) + self.NEWLINE
         alert_info += "URI: " + request.path + self.NEWLINE
-        params = ''
-        # for key in request.REQUEST.iterkeys():  # "for key in request.REQUEST" works too.
-        #     # Add filtering logic here.
-        #     valuelist = request.REQUEST.getlist(key)
-        #     params += ['%s=%s&' % (key, val) for val in valuelist]
+        params = self.getParams(request)
         alert_info += "Parameter: " + params + self.NEWLINE
+        # Log the attack into the database
         self.alertAdmin(alert_info)
 
-    # Log the attack into the database
+    def getParams(self, request):
+        params = ''
+        if request.method == "POST":
+            for key in request.POST.iterkeys():  # "for key in request.REQUEST" works too.
+                # Add filtering logic here.
+                valuelist = request.post.getlist(key)
+                params += ['%s=%s&' % (key, val) for val in valuelist]
+        if request.method == "GET":
+            for key in request.GET.iterkeys():  # "for key in request.REQUEST" works too.
+                # Add filtering logic here.
+                valuelist = request.GET.getlist(key)
+                params += ['%s=%s&' % (key, val) for val in valuelist]
+        return params
+
     def logAttack(self, attack, score, request):
         conn = self.getDb()
         db = conn.cursor()
         session_parameters = self.getSessionParameters(request)
-        params = ''
+        params = self.getParams(request)
         # for key in request.REQUEST.iterkeys():  # "for key in request.REQUEST" works too.
         #     # Add filtering logic here.
         #     valuelist = request.REQUEST.getlist(key)
         #     params += ['%s=%s&' % (key, val) for val in valuelist]
         data = [(
-            str(datetime.datetime.now()), 'defend', session_parameters['ip'], session_parameters['user'], str(session_parameters['cookie']),
+            str(datetime.datetime.now()), 'defend', session_parameters['ip'], session_parameters['user'],
+            str(session_parameters['cookie']),
             str(request.META['SCRIPT_NAME']), request.get_full_path(), params, attack, score)]
         db.executemany(
             "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
