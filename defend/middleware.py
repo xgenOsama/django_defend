@@ -119,7 +119,7 @@ class handling_middleware():
     def nonExistingFile(self, request):
         attack = "Non existing file"
         score = 5
-        path = request.path
+        path = request.get_full_path()
 
         if request.path:
             path_splited = path.split('/')
@@ -169,8 +169,8 @@ class handling_middleware():
     def checkFakeInput(self, request, input_name, value):
         attack = "Fake input modified"
         score = 100
-        if input_name and value and request.POST[input_name] and request.session[value]:
-            if request.POST[input_name] != request.session[value]:
+        if input_name and value and request.POST[input_name]:
+            if request.POST[input_name] != value:
                 self.attackDetected(attack, score, request)
                 return self.ATTACK
         else:
