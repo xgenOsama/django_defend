@@ -28,23 +28,23 @@ class handling_middleware():
 
     def process_response(self, request, response):
         self.checkFakeCookie(request, response)
-        request.session.save()
-        request.session.modified = True
         return response
 
     def checkHttpMethod(self, request, method=""):
         attack = "Incorrect HTTP method"
         score = 25
         if request.method and method == "":
-            db = self.getDb().cursor()
+            conn = self.getDb()
+            db = conn.cursor()
             results = db.execute("SELECT method FROM acceptHttpMethod")
             found = False
             if request.method in [result[0] for result in results.fetchall()]:
                 found = True
-                results.close()
             if found:
+                conn.close()
                 return self.OK
             else:
+                conn.close()
                 attack = "Blacklisted HTTP method"
                 self.attackDetected(attack, score, request)
                 return self.ATTACK
@@ -61,13 +61,15 @@ class handling_middleware():
         attack = "Vulnerabiliry scanner in URL"
         score = 10
         if request.path:
-            db = self.getDb().cursor()
+            conn = self.getDb()
+            db = conn.cursor()
             results = db.execute("SELECT string FROM denyUrlString")
             all_data = results.fetchall()
             for word in request.get_full_path().split('/'):
                 for result in all_data:
                     if str(word.lower()) == str(result[0].lower()):
                         self.attackDetected(attack, score, request)
+                        conn.close()
                         return self.ATTACK
         else:
             return self.ERROR
@@ -89,11 +91,13 @@ class handling_middleware():
         attack = "Vulnerability scanner is user-agent"
         score = 100
         if request.META['HTTP_USER_AGENT']:
-            db = self.getDb().cursor()
+            conn = self.getDb()
+            db = conn.cursor()
             results = db.execute("SELECT useragent FROM denyUserAgent")
             for result in results.fetchall():
                 if request.META['HTTP_USER_AGENT'] in result[0]:
                     self.attackDetected(attack, score, request)
+                    conn.close()
                     return self.ATTACK
         else:
             return self.ERROR
@@ -126,14 +130,15 @@ class handling_middleware():
             filee = path_splited[len(path_splited) - 1]
             filee = filee.split('.')
             filee_extension = filee[len(filee) - 1]
-            db = self.getDb().cursor()
+            conn = self.getDb()
+            db = conn.cursor()
             extensions = db.execute("SELECT extension FROM denyExtension")
             denied_extensions = extensions.fetchall()
             for denied_ex in denied_extensions:
                 if str(filee_extension.lower()) == str(denied_ex[0].lower()):
                     self.attackDetected(attack, score, request)
+                    conn.close()
                     return self.ATTACK
-                    break
         else:
             return self.ERROR
         return self.OK
@@ -153,17 +158,20 @@ class handling_middleware():
     def checkFakeCookie(self, request, response, cookie_name="admin", cookie_value="false"):
         attack = "False cookie modified"
         score = 100
-        db = self.getDb().cursor()
+        conn = self.getDb()
+        db = conn.cursor()
         result = db.execute("SELECT id from attacker WHERE attack='" + attack + "'")
         if result:
             return
         if request.COOKIES.has_key(cookie_name) and request.COOKIES[cookie_name] != cookie_value:
             self.attackDetected(attack, score, request)
+            conn.close()
             return self.ATTACK
         else:
             max_age = 365 * 24 * 60 * 60
             expires = datetime.datetime.now() + datetime.timedelta(seconds=max_age)
             response.set_cookie(cookie_name, cookie_value, expires=expires.utctimetuple(), max_age=max_age)
+            conn.close()
             return self.OK
 
     def checkFakeInput(self, request, input_name, value):
@@ -182,18 +190,14 @@ class handling_middleware():
     def checkSpeed(self, request):
         attack = "Too many requests per minute"
         score = 100
-        print request.session.get('amount_requests_last_minute')
         if 'amount_requests_last_minute' not in request.session or 'amount_requests_last_minute_count' not in request.session:
-            print 'i am setting the session now'
             request.session['amount_requests_last_minute'] = int(round(time.time()))
             request.session['amount_requests_last_minute_count'] = 0
             request.session.set_expiry(300)  # 300 seconds 5 minutes
             request.session.save()
             request.session.modified = True
             # self.add_session_to_request(request)
-        print request.session.get('amount_requests_last_minute')
         if request.session.get('amount_requests_last_minute') < (int(round(time.time())) - 60):
-            print 'i am resetting the sessions now'
             request.session['amount_requests_last_minute_count'] = 0
             request.session['amount_requests_last_minute'] = int(round(time.time()))
             request.session.set_expiry(300)  # 300 seconds 5 minutes
@@ -203,7 +207,6 @@ class handling_middleware():
         request.session['amount_requests_last_minute'] += 1
         request.session['amount_requests_last_minute_count'] += 1
         if request.session['amount_requests_last_minute_count'] > 100:
-            print 'i am an attacker'
             self.attackDetected(attack, score, request)
             return self.ATTACK
         return self.OK
@@ -219,14 +222,13 @@ class handling_middleware():
         if sessions_parameter['cookie']:
             extra += " or cookie = '" + sessions_parameter['user'] + "'"
         timestamp = str(int(round(time.time())) - ban_in_seconds)
-        print extra
         statment = db.execute(
             "SELECT SUM(score) AS total FROM attacker WHERE timestamp > " + timestamp + " AND " + extra)
         if statment.fetchone()[0] > self.BAN:
-            print 'i am true'
+            conn.close()
             return True
         else:
-            print 'i am false'
+            conn.close()
             return False
 
     def add_session_to_request(self, request):
@@ -288,8 +290,10 @@ class handling_middleware():
             str(datetime.datetime.now()), 'defend', session_parameters['ip'], '', str(session_parameters['cookie']),
             str(request.META['SCRIPT_NAME']), request.get_full_path(), params, attack, score)]
         db.executemany(
-            "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",data)
+            "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            data)
         conn.commit()
+        conn.close()
 
     def alertAdmin(self, alert_info):
         if self.DEBUG:
@@ -318,6 +322,7 @@ class handling_middleware():
             db.execute(
                 "INSERT INTO denyExtension (extension) VALUES ('bac'), ('BAC'), ('backup'), ('BACKUP'), ('bak'), ('BAK'), ('conf'), ('cs'), ('csproj'), ('inc'), ('INC'), ('ini'), ('java'), ('log'), ('lst'), ('old'), ('OLD'), ('orig'), ('ORIG'), ('sav'), ('save'), ('temp'), ('tmp'), ('TMP'), ('vb'), ('vbproj')")
             conn.commit()
+            conn.close()
         else:
             conn = sqlite3.connect(self.DB)
         return conn
