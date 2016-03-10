@@ -2,6 +2,7 @@ import sqlite3
 import os.path
 import datetime
 import time
+from django.contrib.sessions.middleware import SessionMiddleware
 
 
 class handling_middleware():
@@ -20,9 +21,11 @@ class handling_middleware():
         self.nonExistingFile(request)
         self.checkHTTPVersion(request)
         self.checkSpeed(request)
+        request.session.save()
 
     def process_response(self, request, response):
         self.checkFakeCookie(request, response)
+        request.session.save()
         return response
 
     def checkHttpMethod(self, request, method=""):
@@ -171,16 +174,24 @@ class handling_middleware():
     def checkSpeed(self, request):
         attack = "Too many requests per minute"
         score = 100
+        print request.session.get('amount_requests_last_minute')
         if 'amount_requests_last_minute' not in request.session or 'amount_requests_last_minute_count' not in request.session:
             print 'i am setting the session now'
             request.session['amount_requests_last_minute'] = int(round(time.time()))
             request.session['amount_requests_last_minute_count'] = 0
             request.session.set_expiry(300)  # 300 seconds 5 minutes
-        if request.session['amount_requests_last_minute'] > (int(round(time.time())) + 60):
+            request.session.save()
+            request.session.modified = True
+            # self.add_session_to_request(request)
+        print request.session.get('amount_requests_last_minute')
+        if request.session.get('amount_requests_last_minute') > (int(round(time.time())) + 60):
             print 'i am resetting the sessions now'
             request.session['amount_requests_last_minute_count'] = 0
             request.session['amount_requests_last_minute'] = int(round(time.time()))
             request.session.set_expiry(300)  # 300 seconds 5 minutes
+            request.session.save()
+            request.session.modified = True
+            # self.add_session_to_request(request)
         request.session['amount_requests_last_minute'] += 1
         request.session['amount_requests_last_minute_count'] += 1
         if request.session['amount_requests_last_minute_count'] > 10:
@@ -188,6 +199,12 @@ class handling_middleware():
             self.attackDetected(attack, score, request)
             return self.ATTACK
         return self.OK
+
+    def add_session_to_request(self, request):
+        """Annotate a request object with a session"""
+        middleware = SessionMiddleware()
+        middleware.process_request(request)
+        request.session.save()
 
     def getSessionParameters(self, request):
         """
