@@ -223,17 +223,17 @@ class handling_middleware():
         if sessions_parameter['cookie']:
             extra += " or cookie = '" + sessions_parameter['user'] + "'"
         # timestamp = str(int(round(time.time())) - ban_in_seconds)
-        timestamp = int(round(time.time() - ban_in_seconds))
-        print timestamp
+        time_seconds = str(int(round(time.time() - ban_in_seconds)))
         statment = db.execute(
-            "SELECT SUM(score) AS total FROM attacker WHERE timestamp < " + str(timestamp) + " AND " + extra)
-        if statment.fetchone()[0] > self.BAN:
+            "SELECT SUM(score) AS total FROM attacker WHERE time_seconds >  " + time_seconds + "  AND " + extra)
+        var = statment.fetchone()[0]
+        print var
+        if var > self.BAN:
             conn.close()
             return True
         else:
             conn.close()
             return False
-
 
     def add_session_to_request(self, request):
         """Annotate a request object with a session"""
@@ -303,11 +303,11 @@ class handling_middleware():
         #     valuelist = request.REQUEST.getlist(key)
         #     params += ['%s=%s&' % (key, val) for val in valuelist]
         data = [(
-            str(int(round(time.time()))), 'defend', session_parameters['ip'], session_parameters['user'],
+            str(datetime.datetime.now()), 'defend', session_parameters['ip'], session_parameters['user'],
             str(session_parameters['cookie']),
-            str(request.META['SCRIPT_NAME']), request.get_full_path(), params, attack, score)]
+            str(request.META['SCRIPT_NAME']), request.get_full_path(), params, attack, score, int(round(time.time())))]
         db.executemany(
-            "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score,time_seconds) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?)",
             data)
         conn.commit()
         conn.close()
@@ -326,7 +326,7 @@ class handling_middleware():
             conn = sqlite3.connect(self.DB)
             db = conn.cursor()
             db.execute(
-                "CREATE TABLE attacker (id INTEGER PRIMARY KEY, timestamp TEXT, application TEXT, ip TEXT, user TEXT, cookie TEXT, filename TEXT, uri TEXT, parameter TEXT, attack TEXT, score INTEGER)")
+                "CREATE TABLE attacker (id INTEGER PRIMARY KEY, timestamp TEXT,time_seconds INTEGER, application TEXT, ip TEXT, user TEXT, cookie TEXT, filename TEXT, uri TEXT, parameter TEXT, attack TEXT, score INTEGER)")
             db.execute("CREATE TABLE denyUserAgent (id INTEGER PRIMARY KEY, useragent TEXT)")
             db.execute(
                 "INSERT INTO denyUserAgent (useragent) VALUES ('burpcollaborator'), ('dirbuster'), ('nessus'), ('nikto'), ('nmap'), ('paros'), ('python-urllib'), ('qualysguard'), ('sqlmap'), ('useragent'), ('w3af')")
