@@ -16,15 +16,16 @@ class handling_middleware():
     NEWLINE = '\n'
 
     def process_request(self, request):
-        # if self.isAttacker(request):
-        #     if request.path != '/blocked':
-        #         return HttpResponsePermanentRedirect('/blocked')
-        self.checkHttpMethod(request, '')
-        self.checkURI(request)
-        self.nonExistingFile(request)
-        self.checkHTTPVersion(request)
-        self.checkSpeed(request)
-        request.session.save()
+        if request.method != 'HEAD':
+            if self.isAttacker(request):
+                if request.path != '/blocked':
+                    return HttpResponsePermanentRedirect('/blocked')
+            self.checkHttpMethod(request, '')
+            self.checkURI(request)
+            self.nonExistingFile(request)
+            self.checkHTTPVersion(request)
+            self.checkSpeed(request)
+            request.session.save()
 
     def process_response(self, request, response):
         self.checkFakeCookie(request, response)
@@ -212,7 +213,7 @@ class handling_middleware():
         return self.OK
 
     def isAttacker(self, request):
-        ban_in_seconds = 60 * 60 * 24
+        ban_in_seconds = 60
         conn = self.getDb()
         db = conn.cursor()
         sessions_parameter = self.getSessionParameters(request)
