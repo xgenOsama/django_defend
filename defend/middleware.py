@@ -165,8 +165,9 @@ class handling_middleware:
         attack = "The Ip address of the user changed for the cookie"
         score = 25
         print "xxxxxxxxxxxxxxxxxxxxxx"
-        if requset.session['REMOTE_ADDR'] is not None and requset.META['REMOTE_ADDR']:
+        if requset.session['REMOTE_ADDR'] and requset.META['REMOTE_ADDR']:
             if requset.session['REMOTE_ADDR'] != requset.META['REMOTE_ADDR']:
+                print 'session changed'
                 self.attackDetected(attack, score, requset)
                 return self.ERROR
         else:
