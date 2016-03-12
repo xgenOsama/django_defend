@@ -222,15 +222,18 @@ class handling_middleware():
             extra += " or user = '" + sessions_parameter['user'] + "'"
         if sessions_parameter['cookie']:
             extra += " or cookie = '" + sessions_parameter['user'] + "'"
-        timestamp = str(int(round(time.time())) - ban_in_seconds)
+        # timestamp = str(int(round(time.time())) - ban_in_seconds)
+        timestamp = int(round(time.time() - ban_in_seconds))
+        print timestamp
         statment = db.execute(
-            "SELECT SUM(score) AS total FROM attacker WHERE timestamp > " + timestamp + " AND " + extra)
+            "SELECT SUM(score) AS total FROM attacker WHERE timestamp < " + str(timestamp) + " AND " + extra)
         if statment.fetchone()[0] > self.BAN:
             conn.close()
             return True
         else:
             conn.close()
             return False
+
 
     def add_session_to_request(self, request):
         """Annotate a request object with a session"""
@@ -300,7 +303,7 @@ class handling_middleware():
         #     valuelist = request.REQUEST.getlist(key)
         #     params += ['%s=%s&' % (key, val) for val in valuelist]
         data = [(
-            str(datetime.datetime.now()), 'defend', session_parameters['ip'], session_parameters['user'],
+            str(int(round(time.time()))), 'defend', session_parameters['ip'], session_parameters['user'],
             str(session_parameters['cookie']),
             str(request.META['SCRIPT_NAME']), request.get_full_path(), params, attack, score)]
         db.executemany(
