@@ -301,13 +301,13 @@ class handling_middleware:
         if request.method == "POST":
             for key in request.POST.iterkeys():  # "for key in request.REQUEST" works too.
                 # Add filtering logic here.
-                valuelist = request.post.getlist(key)
-                params += ['%s=%s&' % (key, val) for val in valuelist]
+                val = request.post.getlist(key)
+                params += ['%s=%s&' % (key, val)]
         if request.method == "GET":
             for key in request.GET.iterkeys():  # "for key in request.REQUEST" works too.
                 # Add filtering logic here.
-                valuelist = request.GET.getlist(key)
-                params += ['%s=%s&' % (key, val) for val in valuelist]
+                val = request.GET.getlist(key)
+                params += ['%s=%s&' % (key, val)]
         return params
 
     def logAttack(self, attack, score, request):
