@@ -4,6 +4,7 @@ import datetime
 import time
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.http import HttpResponsePermanentRedirect
+import os.path
 
 
 class handling_middleware:
@@ -223,8 +224,8 @@ class handling_middleware:
         return self.OK
 
     def isAttacker(self, request):
-        ban_in_seconds = 60
-        # ban_in_seconds = 0
+        # ban_in_seconds = 60
+        ban_in_seconds = 0
         conn = self.getDb()
         db = conn.cursor()
         sessions_parameter = self.getSessionParameters(request)
@@ -281,9 +282,7 @@ class handling_middleware:
         session_parameters = self.getSessionParameters(request)
         alert_info += "." + self.NEWLINE + "Attacker details:" + self.NEWLINE
         alert_info += "IP: " + session_parameters['ip'] + self.NEWLINE
-        alert_info += "User: " + str(session_parameters['user']) + self.NEWLINE
-        alert_info += "Cookie: " + str(session_parameters['cookie']) + self.NEWLINE
-        alert_info += "File: " + str(request.META['SCRIPT_NAME']) + self.NEWLINE
+        # alert_info += "File: " + str(request.META['SCRIPT_FILENAME']) + self.NEWLINE
         alert_info += "URI: " + request.path + self.NEWLINE
         params = self.getParams(request)
         alert_info += "Parameter: " + params + self.NEWLINE
