@@ -5,6 +5,7 @@ from django.test.client import RequestFactory
 from django.core.handlers.base import BaseHandler
 from defend.views import index
 
+
 # you should modifying ban_in second value in isAttacter method to 0 to prefore test
 
 class RequestMock(RequestFactory):
@@ -60,4 +61,9 @@ handeling.nonExistingFile(request)
 request.session['REMOTE_ADDR'] = "127.0.0.1"
 request.META['REMOTE_ADDR'] = "127.0.0.2"
 handeling.checkConcurrentSession(request)
+
+# check fake input
+request = factory.post('http://localhost:8000/',{"input_name": "i am vau"})
+handeling.checkFakeInput(request, 'input_name', 'i am value')
+
 
