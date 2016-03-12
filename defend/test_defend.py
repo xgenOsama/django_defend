@@ -8,6 +8,8 @@ request_method = "FAKE"
 request.user = AnonymousUser()
 request.META['SERVER_PROTOCOL'] = "HTTP/8.0"
 request.META['SERVER_NAME'] = "www.fake.com"
+request.META['HTTP_USER_AGENT'] = "nikto"
+request.session['user_agent'] = "The original user agent"
 
 handeling = handling_middleware()
 
@@ -22,6 +24,10 @@ handeling.checkURI(request)
 
 # test checkHTTPVersion takes only request as a parameter
 handeling.checkHTTPVersion(request)
+
+
+# test checkUserAgent takes only request as a parameter
+handeling.checkUserAgent(request)
 
 
 # test checkHostname takes only request as a parameter
