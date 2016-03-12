@@ -21,17 +21,16 @@ class handling_middleware:
 
 
     def process_request(self, request):
-        if self.isAttacker(request):
-            if request.path != '/blocked':
-                return HttpResponsePermanentRedirect('/blocked')
-        self.checkHttpMethod(request, '')
-        self.checkURI(request)
-        self.nonExistingFile(request)
-        self.checkHTTPVersion(request)
-        self.checkSpeed(request)
-        self.checkUserAgent(request)
-        self.checkHostname(request)
-        request.session.save()
+        if request.method != 'HEAD':
+            if self.isAttacker(request):
+                if request.path != '/blocked':
+                    return HttpResponsePermanentRedirect('/blocked')
+            self.checkHttpMethod(request, '')
+            self.checkURI(request)
+            self.nonExistingFile(request)
+            self.checkHTTPVersion(request)
+            self.checkSpeed(request)
+            request.session.save()
 
     def process_response(self, request, response):
         self.checkFakeCookie(request, response)
@@ -231,7 +230,7 @@ class handling_middleware:
         return self.OK
 
     def isAttacker(self, request):
-        ban_in_seconds = 60 * 60 * 24
+        ban_in_seconds = 60
         conn = self.getDb()
         db = conn.cursor()
         sessions_parameter = self.getSessionParameters(request)
@@ -240,15 +239,18 @@ class handling_middleware:
             extra += " or user = '" + sessions_parameter['user'] + "'"
         if sessions_parameter['cookie']:
             extra += " or cookie = '" + sessions_parameter['user'] + "'"
-        timestamp = str(int(round(time.time())) - ban_in_seconds)
+        # timestamp = str(int(round(time.time())) - ban_in_seconds)
+        timestamp = int(round(time.time() - ban_in_seconds))
+        print timestamp
         statment = db.execute(
-            "SELECT SUM(score) AS total FROM attacker WHERE timestamp > " + timestamp + " AND " + extra)
+            "SELECT SUM(score) AS total FROM attacker WHERE timestamp < " + str(timestamp) + " AND " + extra)
         if statment.fetchone()[0] > self.BAN:
             conn.close()
             return True
         else:
             conn.close()
             return False
+
 
     def add_session_to_request(self, request):
         """Annotate a request object with a session"""
@@ -269,8 +271,10 @@ class handling_middleware:
         if request.META['REMOTE_ADDR'] is not None:
             ip = request.META['REMOTE_ADDR']
         cookie = ''
-        if request.COOKIES.get('logged_in_status') is not None:
-            cookie = request.COOKIES.get('logged_in_status')
+        if request.COOKIES:
+            for key in request.COOKIES.iterkeys():  # "for key in request.REQUEST" works too.
+                val = request.COOKIES.get(key)
+                cookie += '%s=%s&' % (key, val)
         return {'user': user, 'ip': ip, 'cookie': cookie}
 
     def attackDetected(self, attack, score, request):
@@ -287,26 +291,37 @@ class handling_middleware:
         alert_info += "Cookie: " + str(session_parameters['cookie']) + self.NEWLINE
         alert_info += "File: " + str(request.META['SCRIPT_NAME']) + self.NEWLINE
         alert_info += "URI: " + request.path + self.NEWLINE
-        params = ''
-        # for key in request.REQUEST.iterkeys():  # "for key in request.REQUEST" works too.
-        #     # Add filtering logic here.
-        #     valuelist = request.REQUEST.getlist(key)
-        #     params += ['%s=%s&' % (key, val) for val in valuelist]
+        params = self.getParams(request)
         alert_info += "Parameter: " + params + self.NEWLINE
+        # Log the attack into the database
         self.alertAdmin(alert_info)
 
-    # Log the attack into the database
+    def getParams(self, request):
+        params = ''
+        if request.method == "POST":
+            for key in request.POST.iterkeys():  # "for key in request.REQUEST" works too.
+                # Add filtering logic here.
+                valuelist = request.post.getlist(key)
+                params += ['%s=%s&' % (key, val) for val in valuelist]
+        if request.method == "GET":
+            for key in request.GET.iterkeys():  # "for key in request.REQUEST" works too.
+                # Add filtering logic here.
+                valuelist = request.GET.getlist(key)
+                params += ['%s=%s&' % (key, val) for val in valuelist]
+        return params
+
     def logAttack(self, attack, score, request):
         conn = self.getDb()
         db = conn.cursor()
         session_parameters = self.getSessionParameters(request)
-        params = ''
+        params = self.getParams(request)
         # for key in request.REQUEST.iterkeys():  # "for key in request.REQUEST" works too.
         #     # Add filtering logic here.
         #     valuelist = request.REQUEST.getlist(key)
         #     params += ['%s=%s&' % (key, val) for val in valuelist]
         data = [(
-            str(datetime.datetime.now()), 'defend', session_parameters['ip'], '', str(session_parameters['cookie']),
+            str(int(round(time.time()))), 'defend', session_parameters['ip'], session_parameters['user'],
+            str(session_parameters['cookie']),
             str(request.META['SCRIPT_NAME']), request.get_full_path(), params, attack, score)]
         db.executemany(
             "INSERT INTO attacker (timestamp, application, ip, user, cookie, filename, uri, parameter, attack, score) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
