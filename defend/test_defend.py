@@ -70,6 +70,6 @@ handeling.checkFakeInput(request, 'input_name', 'i am valu')
 
 # making 1000 request to check speed of requess per time
 request = factory.get('http://localhost:8000/')
-for i in xrange(1, 2000):
+for i in xrange(1, 200):
     handeling.checkSpeed(request)
 
