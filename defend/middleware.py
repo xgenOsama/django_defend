@@ -4,6 +4,7 @@ import datetime
 import time
 from django.contrib.sessions.middleware import SessionMiddleware
 from django.http import HttpResponsePermanentRedirect
+import os.path
 
 
 class handling_middleware:
@@ -15,9 +16,6 @@ class handling_middleware:
     DB = 'attackers.sqlite3'
     NEWLINE = '\n'
 
-
-    # def __init__(self, req):
-    #     self.req = request
 
 
     def process_request(self, request):
@@ -39,9 +37,8 @@ class handling_middleware:
     def checkHttpMethod(self, request, method=""):
         attack = "Incorrect HTTP method"
         score = 25
-        print "xxxxxxxxxxxxxxxxxxxxxx"
+        
         if request.method and method == "":
-            print "request method : " + request.method
             conn = self.getDb()
             db = conn.cursor()
             results = db.execute("SELECT method FROM acceptHttpMethod")
@@ -69,8 +66,6 @@ class handling_middleware:
         attack = "Vulnerabiliry scanner in URL"
         score = 10
         if request.path:
-            print "xxxxxxxxxxxxxxxxxxxxxx"
-            print "full path : " + str(request.get_full_path)
             conn = self.getDb()
             db = conn.cursor()
             results = db.execute("SELECT string FROM denyUrlString")
@@ -88,9 +83,8 @@ class handling_middleware:
     def checkHTTPVersion(self, request):
         attack = "Incorrect HTTP Version"
         score = 100
-        print "xxxxxxxxxxxxxxxxxxxxxx"
+        
         if request.META.get('SERVER_PROTOCOL'):
-            print "http version : " + request.META.get('SERVER_PROTOCOL')
             if request.META.get('SERVER_PROTOCOL') != 'HTTP/1.1':
                 self.attackDetected(attack, score, request)
                 return self.ATTACK
@@ -103,8 +97,6 @@ class handling_middleware:
         attack = "Vulnerability scanner is user-agent"
         score = 100
         if request.META.get('HTTP_USER_AGENT'):
-            print "xxxxxxxxxxxxxxxxxxxxxx"
-            print "user agent : " + request.META.get('HTTP_USER_AGENT')
             conn = self.getDb()
             db = conn.cursor()
             results = db.execute("SELECT useragent FROM denyUserAgent")
@@ -125,9 +117,7 @@ class handling_middleware:
     def checkHostname(self, request, hostname=None):
         attack = "Incorrect hostname"
         score = 100
-        print "xxxxxxxxxxxxxxxxxxxxxx"
-        # print "host name: " + str(hostname)
-        # print "server name : " + request.META.get('SERVER_NAME')
+
         if hostname is not None:
             if not request.META.get('SERVER_NAME') or request.META.get('SERVER_NAME') != hostname:
                 self.attackDetected(attack, score, request)
@@ -141,7 +131,7 @@ class handling_middleware:
         attack = "Non existing file"
         score = 5
         path = request.get_full_path()
-        print "xxxxxxxxxxxxxxxxxxxxxx"
+        
         if request.path:
             path_splited = path.split('/')
             filee = path_splited[len(path_splited) - 1]
@@ -164,10 +154,9 @@ class handling_middleware:
     def checkConcurrentSession(self, requset):
         attack = "The Ip address of the user changed for the cookie"
         score = 25
-        print "xxxxxxxxxxxxxxxxxxxxxx"
+        
         if requset.session['REMOTE_ADDR'] and requset.META['REMOTE_ADDR']:
             if requset.session['REMOTE_ADDR'] != requset.META['REMOTE_ADDR']:
-                print 'session changed'
                 self.attackDetected(attack, score, requset)
                 return self.ERROR
         else:
@@ -180,6 +169,7 @@ class handling_middleware:
         conn = self.getDb()
         db = conn.cursor()
         result = db.execute("SELECT id from attacker WHERE attack='" + attack + "'")
+        
         if result:
             return
         if request.COOKIES.has_key(cookie_name) and request.COOKIES[cookie_name] != cookie_value:
@@ -196,7 +186,6 @@ class handling_middleware:
     def checkFakeInput(self, request, input_name, value):
         attack = "Fake input modified"
         score = 100
-        print "XXXXXXxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxXXXXXXX"
         if input_name and value and request.POST[input_name]:
             if request.POST[input_name] != value:
                 print 'i am not valid value'
@@ -212,6 +201,7 @@ class handling_middleware:
     def checkSpeed(self, request):
         attack = "Too many requests per minute"
         score = 100
+        
         if 'amount_requests_last_minute' not in request.session or 'amount_requests_last_minute_count' not in request.session:
             request.session['amount_requests_last_minute'] = int(round(time.time()))
             request.session['amount_requests_last_minute_count'] = 0
@@ -286,9 +276,7 @@ class handling_middleware:
         session_parameters = self.getSessionParameters(request)
         alert_info += "." + self.NEWLINE + "Attacker details:" + self.NEWLINE
         alert_info += "IP: " + session_parameters['ip'] + self.NEWLINE
-        alert_info += "User: " + str(session_parameters['user']) + self.NEWLINE
-        alert_info += "Cookie: " + str(session_parameters['cookie']) + self.NEWLINE
-        alert_info += "File: " + str(request.META['SCRIPT_NAME']) + self.NEWLINE
+        # alert_info += "File: " + str(request.META['SCRIPT_FILENAME']) + self.NEWLINE
         alert_info += "URI: " + request.path + self.NEWLINE
         params = self.getParams(request)
         alert_info += "Parameter: " + params + self.NEWLINE
