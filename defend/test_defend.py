@@ -2,6 +2,10 @@ from defend.middleware import handling_middleware
 from django.contrib.auth.models import AnonymousUser, User
 from django.test import TestCase, RequestFactory
 from django.core.handlers.base import BaseHandler
+import urllib2
+import thread
+from threading import Thread
+import time
 
 
 class RequestMock(RequestFactory):
@@ -56,3 +60,10 @@ handeling.nonExistingFile(request)
 request.session['REMOTE_ADDR'] = "127.0.0.1"
 request.META['REMOTE_ADDR'] = "127.0.0.2"
 handeling.checkConcurrentSession(request)
+
+# making 1000 request to check speed of requess per time
+for i in xrange(1,200):
+	urllib2.urlopen("http://localhost:8000/").read()
+	
+# test checkSpeed takes only request as a prameter
+handeling.checkSpeed(request)
