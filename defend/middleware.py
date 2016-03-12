@@ -199,10 +199,12 @@ class handling_middleware:
         score = 100
         if input_name and value and request.POST[input_name]:
             if request.POST[input_name] != value:
+                print 'i am not valid value'
                 self.attackDetected(attack, score, request)
                 return self.ATTACK
         else:
             return self.ERROR
+        print 'i am valid value'
         return self.OK
 
     # check if there is many requests per seconds
@@ -233,8 +235,8 @@ class handling_middleware:
         return self.OK
 
     def isAttacker(self, request):
-        # ban_in_seconds = 60
-        ban_in_seconds = 0
+        ban_in_seconds = 60
+        # ban_in_seconds = 0
         conn = self.getDb()
         db = conn.cursor()
         sessions_parameter = self.getSessionParameters(request)

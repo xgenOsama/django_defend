@@ -1,12 +1,12 @@
 from defend.middleware import handling_middleware
 from django.contrib.auth.models import AnonymousUser, User
-from django.test import TestCase, RequestFactory
+from django.test import TestCase
+from django.test.client import RequestFactory
 from django.core.handlers.base import BaseHandler
 import urllib2
-import thread
-from threading import Thread
-import time
+from defend.views import index
 
+# you should modifying ban_in second value in isAttacter method to 0 to prefore test
 
 class RequestMock(RequestFactory):
     def request(self, **request):
@@ -14,6 +14,7 @@ class RequestMock(RequestFactory):
         request = RequestFactory.request(self, **request)
         handler = BaseHandler()
         handler.load_middleware()
+        request.csrf_processing_done = True
         for middleware_method in handler._request_middleware:
             if middleware_method(request):
                 raise Exception("Couldn't create request mock object - "
