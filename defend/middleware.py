@@ -188,12 +188,10 @@ class handling_middleware:
         score = 100
         if input_name and value and request.POST[input_name]:
             if request.POST[input_name] != value:
-                print 'i am not valid value'
                 self.attackDetected(attack, score, request)
                 return self.ATTACK
         else:
             return self.ERROR
-        print 'i am valid value'
         return self.OK
 
     # check if there is many requests per seconds
@@ -224,7 +222,7 @@ class handling_middleware:
         return self.OK
 
     def isAttacker(self, request):
-        ban_in_seconds = 60 * 60 * 24
+        ban_in_seconds = 0
         conn = self.getDb()
         db = conn.cursor()
         sessions_parameter = self.getSessionParameters(request)
@@ -238,7 +236,6 @@ class handling_middleware:
         statment = db.execute(
             "SELECT SUM(score) AS total FROM attacker WHERE datetime(timestamp) >  datetime('" + timestamp + "')  AND " + extra)
         var = statment.fetchone()[0]
-        print var
         if var > self.BAN:
             conn.close()
             return True
@@ -288,7 +285,7 @@ class handling_middleware:
         if request.method == "POST":
             for key in request.POST.iterkeys():  # "for key in request.REQUEST" works too.
                 # Add filtering logic here.
-                val = request.post.get(key)
+                val = request.POST.get(key)
                 params += '%s=%s&' % (key, val)
         if request.method == "GET":
             for key in request.GET.iterkeys():  # "for key in request.REQUEST" works too.
