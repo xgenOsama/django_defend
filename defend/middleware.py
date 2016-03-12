@@ -16,9 +16,6 @@ class handling_middleware:
     NEWLINE = '\n'
 
 
-    # def __init__(self, req):
-    #     self.req = request
-
 
     def process_request(self, request):
         if request.method != 'HEAD':
@@ -41,7 +38,6 @@ class handling_middleware:
         score = 25
         
         if request.method and method == "":
-            print "request method : " + request.method
             conn = self.getDb()
             db = conn.cursor()
             results = db.execute("SELECT method FROM acceptHttpMethod")
@@ -69,8 +65,6 @@ class handling_middleware:
         attack = "Vulnerabiliry scanner in URL"
         score = 10
         if request.path:
-            
-            print "full path : " + str(request.get_full_path)
             conn = self.getDb()
             db = conn.cursor()
             results = db.execute("SELECT string FROM denyUrlString")
@@ -90,7 +84,6 @@ class handling_middleware:
         score = 100
         
         if request.META.get('SERVER_PROTOCOL'):
-            print "http version : " + request.META.get('SERVER_PROTOCOL')
             if request.META.get('SERVER_PROTOCOL') != 'HTTP/1.1':
                 self.attackDetected(attack, score, request)
                 return self.ATTACK
@@ -103,8 +96,6 @@ class handling_middleware:
         attack = "Vulnerability scanner is user-agent"
         score = 100
         if request.META.get('HTTP_USER_AGENT'):
-            
-            # print "user agent : " + request.META.get('HTTP_USER_AGENT')
             conn = self.getDb()
             db = conn.cursor()
             results = db.execute("SELECT useragent FROM denyUserAgent")
@@ -125,9 +116,7 @@ class handling_middleware:
     def checkHostname(self, request, hostname=None):
         attack = "Incorrect hostname"
         score = 100
-        
-        # print "host name: " + str(hostname)
-        # print "server name : " + request.META.get('SERVER_NAME')
+
         if hostname is not None:
             if not request.META.get('SERVER_NAME') or request.META.get('SERVER_NAME') != hostname:
                 self.attackDetected(attack, score, request)
@@ -167,7 +156,6 @@ class handling_middleware:
         
         if requset.session['REMOTE_ADDR'] and requset.META['REMOTE_ADDR']:
             if requset.session['REMOTE_ADDR'] != requset.META['REMOTE_ADDR']:
-                print 'session changed'
                 self.attackDetected(attack, score, requset)
                 return self.ERROR
         else:
