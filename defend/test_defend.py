@@ -63,17 +63,14 @@ request.session['REMOTE_ADDR'] = "127.0.0.1"
 request.META['REMOTE_ADDR'] = "127.0.0.2"
 handeling.checkConcurrentSession(request)
 
-<<<<<<< HEAD
 # check fake input
-request = factory.post('http://localhost:8000/',{"input_name": "i am vau"})
+request = factory.post('http://localhost:8000/', {"input_name": "i am vau"})
 handeling.checkFakeInput(request, 'input_name', 'i am value')
 
 
-=======
 # making 1000 request to check speed of requess per time
-for i in xrange(1,200):
-	urllib2.urlopen("http://localhost:8000/").read()
-	
+for i in xrange(1, 200):
+    urllib2.urlopen("http://localhost:8000/").read()
+
 # test checkSpeed takes only request as a prameter
 handeling.checkSpeed(request)
->>>>>>> e8f898d762ad80f67d32714f4eb7fd8587c7b060
