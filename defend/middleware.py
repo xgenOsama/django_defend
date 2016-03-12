@@ -6,7 +6,7 @@ from django.contrib.sessions.middleware import SessionMiddleware
 from django.http import HttpResponsePermanentRedirect
 
 
-class handling_middleware():
+class handling_middleware:
     OK = 1
     ERROR = 0
     ATTACK = -1
@@ -14,6 +14,11 @@ class handling_middleware():
     DEBUG = True
     DB = 'attackers.sqlite3'
     NEWLINE = '\n'
+
+
+    # def __init__(self, req):
+    #     self.req = request
+
 
     def process_request(self, request):
         if self.isAttacker(request):
@@ -24,6 +29,8 @@ class handling_middleware():
         self.nonExistingFile(request)
         self.checkHTTPVersion(request)
         self.checkSpeed(request)
+        self.checkUserAgent(request)
+        self.checkHostname(request)
         request.session.save()
 
     def process_response(self, request, response):
@@ -33,7 +40,9 @@ class handling_middleware():
     def checkHttpMethod(self, request, method=""):
         attack = "Incorrect HTTP method"
         score = 25
+        print "xxxxxxxxxxxxxxxxxxxxxx"
         if request.method and method == "":
+            print "request method : " + request.method
             conn = self.getDb()
             db = conn.cursor()
             results = db.execute("SELECT method FROM acceptHttpMethod")
@@ -61,6 +70,8 @@ class handling_middleware():
         attack = "Vulnerabiliry scanner in URL"
         score = 10
         if request.path:
+            print "xxxxxxxxxxxxxxxxxxxxxx"
+            print "full path : " + str(request.get_full_path)
             conn = self.getDb()
             db = conn.cursor()
             results = db.execute("SELECT string FROM denyUrlString")
@@ -78,8 +89,10 @@ class handling_middleware():
     def checkHTTPVersion(self, request):
         attack = "Incorrect HTTP Version"
         score = 100
-        if request.META['SERVER_PROTOCOL']:
-            if request.META['SERVER_PROTOCOL'] != 'HTTP/1.1':
+        print "xxxxxxxxxxxxxxxxxxxxxx"
+        if request.META.get('SERVER_PROTOCOL'):
+            print "http version : " + request.META.get('SERVER_PROTOCOL')
+            if request.META.get('SERVER_PROTOCOL') != 'HTTP/1.1':
                 self.attackDetected(attack, score, request)
                 return self.ATTACK
         else:
@@ -90,19 +103,21 @@ class handling_middleware():
     def checkUserAgent(self, request):
         attack = "Vulnerability scanner is user-agent"
         score = 100
-        if request.META['HTTP_USER_AGENT']:
+        if request.META.get('HTTP_USER_AGENT'):
+            print "xxxxxxxxxxxxxxxxxxxxxx"
+            print "user agent : " + request.META.get('HTTP_USER_AGENT')
             conn = self.getDb()
             db = conn.cursor()
             results = db.execute("SELECT useragent FROM denyUserAgent")
             for result in results.fetchall():
-                if request.META['HTTP_USER_AGENT'] in result[0]:
+                if request.META.get('HTTP_USER_AGENT') in result[0]:
                     self.attackDetected(attack, score, request)
                     conn.close()
                     return self.ATTACK
         else:
             return self.ERROR
-        if request.session['user_agent'] is not None and request.META['HTTP_USER_AGENT']:
-            if request.session['user_agent'] != request.META['HTTP_USER_AGENT']:
+        if request.session['user_agent'] is not None and request.META.get('HTTP_USER_AGENT'):
+            if request.session['user_agent'] != request.META.get('HTTP_USER_AGENT'):
                 attack = "User-agent changed during user session"
                 self.attackDetected(attack, score, request)
                 return self.ATTACK
@@ -111,8 +126,11 @@ class handling_middleware():
     def checkHostname(self, request, hostname=None):
         attack = "Incorrect hostname"
         score = 100
+        print "xxxxxxxxxxxxxxxxxxxxxx"
+        # print "host name: " + str(hostname)
+        # print "server name : " + request.META.get('SERVER_NAME')
         if hostname is not None:
-            if not request.META['SERVER_NAME'] or request.META['SERVER_NAME'] != hostname:
+            if not request.META.get('SERVER_NAME') or request.META.get('SERVER_NAME') != hostname:
                 self.attackDetected(attack, score, request)
                 return self.ATTACK
         else:
@@ -124,7 +142,7 @@ class handling_middleware():
         attack = "Non existing file"
         score = 5
         path = request.get_full_path()
-
+        print "xxxxxxxxxxxxxxxxxxxxxx"
         if request.path:
             path_splited = path.split('/')
             filee = path_splited[len(path_splited) - 1]
@@ -147,6 +165,7 @@ class handling_middleware():
     def checkConcurrentSession(self, requset):
         attack = "The Ip address of the user changed for the cookie"
         score = 25
+        print "xxxxxxxxxxxxxxxxxxxxxx"
         if requset.session['REMOTE_ADDR'] is not None and requset.META['REMOTE_ADDR']:
             if requset.session['REMOTE_ADDR'] != requset.META['REMOTE_ADDR']:
                 self.attackDetected(attack, score, requset)
