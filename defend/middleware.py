@@ -16,8 +16,6 @@ class handling_middleware:
     DB = 'attackers.sqlite3'
     NEWLINE = '\n'
 
-
-
     def process_request(self, request):
         if request.method != 'HEAD':
             if self.isAttacker(request):
@@ -37,7 +35,7 @@ class handling_middleware:
     def checkHttpMethod(self, request, method=""):
         attack = "Incorrect HTTP method"
         score = 25
-        
+
         if request.method and method == "":
             conn = self.getDb()
             db = conn.cursor()
@@ -83,7 +81,7 @@ class handling_middleware:
     def checkHTTPVersion(self, request):
         attack = "Incorrect HTTP Version"
         score = 100
-        
+
         if request.META.get('SERVER_PROTOCOL'):
             if request.META.get('SERVER_PROTOCOL') != 'HTTP/1.1':
                 self.attackDetected(attack, score, request)
@@ -131,7 +129,7 @@ class handling_middleware:
         attack = "Non existing file"
         score = 5
         path = request.get_full_path()
-        
+
         if request.path:
             path_splited = path.split('/')
             filee = path_splited[len(path_splited) - 1]
@@ -154,7 +152,7 @@ class handling_middleware:
     def checkConcurrentSession(self, requset):
         attack = "The Ip address of the user changed for the cookie"
         score = 25
-        
+
         if requset.session['REMOTE_ADDR'] and requset.META['REMOTE_ADDR']:
             if requset.session['REMOTE_ADDR'] != requset.META['REMOTE_ADDR']:
                 self.attackDetected(attack, score, requset)
@@ -169,9 +167,6 @@ class handling_middleware:
         conn = self.getDb()
         db = conn.cursor()
         result = db.execute("SELECT id from attacker WHERE attack='" + attack + "'")
-        
-        if result:
-            return
         if request.COOKIES.has_key(cookie_name) and request.COOKIES[cookie_name] != cookie_value:
             self.attackDetected(attack, score, request)
             conn.close()
@@ -199,7 +194,7 @@ class handling_middleware:
     def checkSpeed(self, request):
         attack = "Too many requests per minute"
         score = 100
-        
+
         if 'amount_requests_last_minute' not in request.session or 'amount_requests_last_minute_count' not in request.session:
             request.session['amount_requests_last_minute'] = int(round(time.time()))
             request.session['amount_requests_last_minute_count'] = 0
@@ -232,7 +227,8 @@ class handling_middleware:
         if sessions_parameter['cookie']:
             extra += " or cookie = '" + sessions_parameter['user'] + "'"
         # timestamp = str(int(round(time.time())) - ban_in_seconds)
-        timestamp = datetime.datetime.fromtimestamp(int(round(time.time() - ban_in_seconds))).strftime('%Y-%m-%d %H:%M:%S')
+        timestamp = datetime.datetime.fromtimestamp(int(round(time.time() - ban_in_seconds))).strftime(
+            '%Y-%m-%d %H:%M:%S')
         statment = db.execute(
             "SELECT SUM(score) AS total FROM attacker WHERE datetime(timestamp) >  datetime('" + timestamp + "')  AND " + extra)
         var = statment.fetchone()[0]
@@ -242,7 +238,6 @@ class handling_middleware:
         else:
             conn.close()
             return False
-
 
     def getSessionParameters(self, request):
         """
@@ -325,7 +320,7 @@ class handling_middleware:
         :return: db
         """
         if not os.path.exists(self.DB):
-            conn = sqlite3.connect(self.DB)
+            conn = sqlite3.connect(self.DB, timeout=10)
             db = conn.cursor()
             db.execute(
                 "CREATE TABLE attacker (id INTEGER PRIMARY KEY, timestamp TEXT, application TEXT, ip TEXT, user TEXT, cookie TEXT, filename TEXT, uri TEXT, parameter TEXT, attack TEXT, score INTEGER)")
@@ -341,7 +336,6 @@ class handling_middleware:
             db.execute(
                 "INSERT INTO denyExtension (extension) VALUES ('bac'), ('BAC'), ('backup'), ('BACKUP'), ('bak'), ('BAK'), ('conf'), ('cs'), ('csproj'), ('inc'), ('INC'), ('ini'), ('java'), ('log'), ('lst'), ('old'), ('OLD'), ('orig'), ('ORIG'), ('sav'), ('save'), ('temp'), ('tmp'), ('TMP'), ('vb'), ('vbproj')")
             conn.commit()
-            conn.close()
         else:
-            conn = sqlite3.connect(self.DB)
+            conn = sqlite3.connect(self.DB, timeout=10)
         return conn
