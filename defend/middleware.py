@@ -23,19 +23,22 @@ class handling_middleware:
                     return HttpResponsePermanentRedirect('/blocked')
             self.checkHttpMethod(request, '')
             self.checkURI(request)
+            # save default value for REMOTE_ADDR in session to check if session changed 
+            request.session['REMOTE_ADDR'] = '127.0.0.2'
+            self.checkConcurrentSession(request)
             self.nonExistingFile(request)
             self.checkHTTPVersion(request)
             self.checkSpeed(request)
             request.session.save()
 
     def process_response(self, request, response):
-        self.checkFakeCookie(request, response)
+        response.set_cookie( 'fake_cookie_name', 'fake_cookie_value' )
+        self.checkFakeCookie(request, response, 'fake_cookie_name', 'not fake')
         return response
 
     def checkHttpMethod(self, request, method=""):
         attack = "Incorrect HTTP method"
         score = 25
-
         if request.method and method == "":
             conn = self.getDb()
             db = conn.cursor()
@@ -149,19 +152,18 @@ class handling_middleware:
         return self.OK
 
     # check if the ip address for the same cookie has changed
-    def checkConcurrentSession(self, requset):
+    def checkConcurrentSession(self, request):
         attack = "The Ip address of the user changed for the cookie"
         score = 25
-
-        if requset.session['REMOTE_ADDR'] and requset.META['REMOTE_ADDR']:
-            if requset.session['REMOTE_ADDR'] != requset.META['REMOTE_ADDR']:
-                self.attackDetected(attack, score, requset)
+        if request.session['REMOTE_ADDR'] and request.META['REMOTE_ADDR']:
+            if request.session['REMOTE_ADDR'] != request.META['REMOTE_ADDR']:
+                self.attackDetected(attack, score, request)
                 return self.ERROR
         else:
             return self.ERROR
         return self.OK
 
-    def checkFakeCookie(self, request, response, cookie_name="admin", cookie_value="false"):
+    def checkFakeCookie(self, request, response, cookie_name, cookie_value):
         attack = "False cookie modified"
         score = 100
         conn = self.getDb()
@@ -181,7 +183,7 @@ class handling_middleware:
     def checkFakeInput(self, request, input_name, value):
         attack = "Fake input modified"
         score = 100
-        if input_name and value and request.POST[input_name]:
+        if input_name and value and request.POST.get(input_name):
             if request.POST[input_name] != value:
                 self.attackDetected(attack, score, request)
                 return self.ATTACK
@@ -217,7 +219,8 @@ class handling_middleware:
         return self.OK
 
     def isAttacker(self, request):
-        ban_in_seconds = 60 * 60 * 24
+        # ban_in_seconds = 60 * 60 * 24
+        ban_in_seconds = 0
         conn = self.getDb()
         db = conn.cursor()
         sessions_parameter = self.getSessionParameters(request)
