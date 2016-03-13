@@ -24,7 +24,7 @@ class handling_middleware:
             self.checkHttpMethod(request, '')
             self.checkURI(request)
             # save default value for REMOTE_ADDR in session to check if session changed 
-            request.session['REMOTE_ADDR'] = '127.0.0.2'
+            request.session['REMOTE_ADDR'] = '127.0.0.1'
             self.checkConcurrentSession(request)
             self.nonExistingFile(request)
             self.checkHTTPVersion(request)
@@ -219,8 +219,8 @@ class handling_middleware:
         return self.OK
 
     def isAttacker(self, request):
-        # ban_in_seconds = 60 * 60 * 24
-        ban_in_seconds = 0
+        ban_in_seconds = 60 * 60 * 24
+        # ban_in_seconds = 0 for testing
         conn = self.getDb()
         db = conn.cursor()
         sessions_parameter = self.getSessionParameters(request)
