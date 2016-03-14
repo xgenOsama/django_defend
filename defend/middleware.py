@@ -32,8 +32,10 @@ class handling_middleware:
             request.session.save()
 
     def process_response(self, request, response):
-        response.set_cookie( 'fake_cookie_name', 'fake_cookie_value' )
-        self.checkFakeCookie(request, response, 'fake_cookie_name', 'not fake')
+        response.set_cookie('fake_cookie_name', 'fake_cookie_value')
+        # this only in testing 
+        # self.checkFakeCookie(request, response, 'fake_cookie_name', 'not fake')
+        self.checkFakeCookie(request, response)
         return response
 
     def checkHttpMethod(self, request, method=""):
@@ -163,12 +165,11 @@ class handling_middleware:
             return self.ERROR
         return self.OK
 
-    def checkFakeCookie(self, request, response, cookie_name, cookie_value):
+    def checkFakeCookie(self, request, response, cookie_name='admin', cookie_value='false'):
         attack = "False cookie modified"
         score = 100
         conn = self.getDb()
         db = conn.cursor()
-        result = db.execute("SELECT id from attacker WHERE attack='" + attack + "'")
         if request.COOKIES.has_key(cookie_name) and request.COOKIES[cookie_name] != cookie_value:
             self.attackDetected(attack, score, request)
             conn.close()
