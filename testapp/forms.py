@@ -9,6 +9,4 @@ class TestModelForm(ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(TestModelForm, self).__init__(*args, **kwargs)
-        # set label in django forms
-        self.fields['name'].label = u"الأسم"
 

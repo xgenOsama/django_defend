@@ -26,8 +26,13 @@ class handling_middleware:
             # save default value for REMOTE_ADDR in session to check if session changed 
             request.session['REMOTE_ADDR'] = '127.0.0.2'
             self.checkConcurrentSession(request)
+
             self.nonExistingFile(request)
             self.checkHTTPVersion(request)
+            # save default value for user_agent in session to check if user agent changed 
+            request.session['user_agent'] = 'The original user agent'
+            self.checkUserAgent(request)
+
             self.checkSpeed(request)
             request.session.save()
 
@@ -37,6 +42,9 @@ class handling_middleware:
         return response
 
     def checkHttpMethod(self, request, method=""):
+        """
+            check http method if not included in acceptHttpMethod saved to DB
+        """
         attack = "Incorrect HTTP method"
         score = 25
         if request.method and method == "":
@@ -64,6 +72,9 @@ class handling_middleware:
 
     # check if the url contains a string flagged as an attacker
     def checkURI(self, request):
+        """
+            split url into list and check if any item in denyUrlString
+        """
         attack = "Vulnerabiliry scanner in URL"
         score = 10
         if request.path:
@@ -82,6 +93,9 @@ class handling_middleware:
         return self.OK
 
     def checkHTTPVersion(self, request):
+        """
+            check http version if not HTTP/1.1
+        """
         attack = "Incorrect HTTP Version"
         score = 100
 
@@ -95,6 +109,10 @@ class handling_middleware:
 
     # check if the User-Agent is flagged as an attacker
     def checkUserAgent(self, request):
+        """
+            check user-agent if includes in denyUserAgent or,
+            if the session value of user_agent created exists and not equal to HTTP_USER_AGENT
+        """
         attack = "Vulnerability scanner is user-agent"
         score = 100
         if request.META.get('HTTP_USER_AGENT'):
@@ -116,6 +134,10 @@ class handling_middleware:
         return self.OK
 
     def checkHostname(self, request, hostname=None):
+        """
+            check if SERVER_NAME not exist or,
+            SERVER_NAME value not equal to hostname passed to checkHostname method
+        """
         attack = "Incorrect hostname"
         score = 100
 
@@ -129,6 +151,10 @@ class handling_middleware:
 
     # check files extensions "denied and excepted"
     def nonExistingFile(self, request):
+        """
+            getting path and split it to get files  ending with .'extension',
+            to check this extension if exists in denyExtension
+        """
         attack = "Non existing file"
         score = 5
         path = request.get_full_path()
@@ -153,6 +179,10 @@ class handling_middleware:
 
     # check if the ip address for the same cookie has changed
     def checkConcurrentSession(self, request):
+        """
+            compare REMOTE_ADDR value added to session if exists, 
+            with user REMOTE_ADDR
+        """
         attack = "The Ip address of the user changed for the cookie"
         score = 25
         if request.session['REMOTE_ADDR'] and request.META['REMOTE_ADDR']:
@@ -164,11 +194,17 @@ class handling_middleware:
         return self.OK
 
     def checkFakeCookie(self, request, response, cookie_name, cookie_value):
+        """
+            check if cookie_name added to COOKIES with specific value exists,
+            if this value changed
+        """
         attack = "False cookie modified"
         score = 100
         conn = self.getDb()
         db = conn.cursor()
-        result = db.execute("SELECT id from attacker WHERE attack='" + attack + "'")
+        # result = db.execute("SELECT id from attacker WHERE attack='" + attack + "'")
+        # if result:
+        #     return
         if request.COOKIES.has_key(cookie_name) and request.COOKIES[cookie_name] != cookie_value:
             self.attackDetected(attack, score, request)
             conn.close()
@@ -181,6 +217,11 @@ class handling_middleware:
             return self.OK
 
     def checkFakeInput(self, request, input_name, value):
+        """
+            check if hidden input in particular form exists,
+            to compare value passed to checkFakeInput method with,
+            value of hidden input
+        """
         attack = "Fake input modified"
         score = 100
         if input_name and value and request.POST.get(input_name):
@@ -194,6 +235,11 @@ class handling_middleware:
     # check if there is many requests per seconds
     # ab -n 1000 -c 5 http://127.0.0.1:8000/
     def checkSpeed(self, request):
+        """
+            check 'amount_requests_last_minute' , 'amount_requests_last_minute_count' 
+            values added to session,
+            if there is many requests per seconds
+        """
         attack = "Too many requests per minute"
         score = 100
 

@@ -2,7 +2,6 @@
 from django.shortcuts import render, redirect
 from forms import TestModelForm
 from defend.middleware import handling_middleware
-# Create your views here.
 
 def test_form(request):
     handel = handling_middleware()
@@ -17,8 +16,8 @@ def test_form(request):
             form.save()
             # using commented return to check Vulnerabiliry URL and accessing Non existing file
 
-            return redirect('http://localhost:8000/admin/login/?next=/admin/acunetix/x.bacKup')
-            # return redirect('/')
+            # return redirect('http://localhost:8000/admin/login/?next=/admin/acunetix/x.bacKup')
+            return redirect('/')
     else:
         form = TestModelForm()
     return render(request, "test_creating_form.html", {
