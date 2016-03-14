@@ -197,6 +197,7 @@ class handling_middleware:
 
 
     def checkFakeCookie(self, request, response, cookie_name='admin', cookie_value='false'):
+        attack = "Fake cookie  modified"
         """
             check if cookie_name added to COOKIES with specific value exists,
             if this value changed
