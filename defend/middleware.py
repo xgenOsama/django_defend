@@ -196,7 +196,7 @@ class handling_middleware:
         return self.OK
 
 
-    def checkFakeCookie(self, request, response, cookie_name, cookie_value):
+    def checkFakeCookie(self, request, response, cookie_name='admin', cookie_value='false'):
         """
             check if cookie_name added to COOKIES with specific value exists,
             if this value changed
