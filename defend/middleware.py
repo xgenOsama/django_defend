@@ -24,7 +24,7 @@ class handling_middleware:
             self.checkHttpMethod(request, '')
             self.checkURI(request)
             # save default value for REMOTE_ADDR in session to check if session changed 
-            request.session['REMOTE_ADDR'] = '127.0.0.2'
+            request.session['REMOTE_ADDR'] = '127.0.0.1'
             self.checkConcurrentSession(request)
 
             self.nonExistingFile(request)
@@ -37,8 +37,10 @@ class handling_middleware:
             request.session.save()
 
     def process_response(self, request, response):
-        response.set_cookie( 'fake_cookie_name', 'fake_cookie_value' )
-        self.checkFakeCookie(request, response, 'fake_cookie_name', 'not fake')
+        response.set_cookie('fake_cookie_name', 'fake_cookie_value')
+        # this only in testing 
+        # self.checkFakeCookie(request, response, 'fake_cookie_name', 'not fake')
+        self.checkFakeCookie(request, response)
         return response
 
     def checkHttpMethod(self, request, method=""):
@@ -193,12 +195,12 @@ class handling_middleware:
             return self.ERROR
         return self.OK
 
+
     def checkFakeCookie(self, request, response, cookie_name, cookie_value):
         """
             check if cookie_name added to COOKIES with specific value exists,
             if this value changed
         """
-        attack = "False cookie modified"
         score = 100
         conn = self.getDb()
         db = conn.cursor()
@@ -265,8 +267,8 @@ class handling_middleware:
         return self.OK
 
     def isAttacker(self, request):
-        # ban_in_seconds = 60 * 60 * 24
-        ban_in_seconds = 0
+        ban_in_seconds = 60 * 60 * 24
+        # ban_in_seconds = 0 for testing
         conn = self.getDb()
         db = conn.cursor()
         sessions_parameter = self.getSessionParameters(request)
