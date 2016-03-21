@@ -23,23 +23,18 @@ class handling_middleware:
                     return HttpResponsePermanentRedirect('/blocked')
             self.checkHttpMethod(request, '')
             self.checkURI(request)
-            # save default value for REMOTE_ADDR in session to check if session changed 
-            request.session['REMOTE_ADDR'] = '127.0.0.1'
+            # save default value for REMOTE_ADDR in session to check if session changed
+            # request.session['REMOTE_ADDR'] = '127.0.0.1'
             self.checkConcurrentSession(request)
-
             self.nonExistingFile(request)
             self.checkHTTPVersion(request)
-            # save default value for user_agent in session to check if user agent changed 
-            request.session['user_agent'] = 'The original user agent'
+            # save default value for user_agent in session to check if user agent changed
+            # request.session['user_agent'] = 'The original user agent'
             self.checkUserAgent(request)
-
             self.checkSpeed(request)
             request.session.save()
 
     def process_response(self, request, response):
-        response.set_cookie('fake_cookie_name', 'fake_cookie_value')
-        # this only in testing 
-        # self.checkFakeCookie(request, response, 'fake_cookie_name', 'not fake')
         self.checkFakeCookie(request, response)
         return response
 
@@ -128,7 +123,7 @@ class handling_middleware:
                     return self.ATTACK
         else:
             return self.ERROR
-        if request.session['user_agent'] is not None and request.META.get('HTTP_USER_AGENT'):
+        if request.session.has_key('user_agent') and request.META.get('HTTP_USER_AGENT'):
             if request.session['user_agent'] != request.META.get('HTTP_USER_AGENT'):
                 attack = "User-agent changed during user session"
                 self.attackDetected(attack, score, request)
@@ -182,19 +177,18 @@ class handling_middleware:
     # check if the ip address for the same cookie has changed
     def checkConcurrentSession(self, request):
         """
-            compare REMOTE_ADDR value added to session if exists, 
+            compare REMOTE_ADDR value added to session if exists,
             with user REMOTE_ADDR
         """
         attack = "The Ip address of the user changed for the cookie"
         score = 25
-        if request.session['REMOTE_ADDR'] and request.META['REMOTE_ADDR']:
+        if request.session.has_key('REMOTE_ADDR') and request.META['REMOTE_ADDR']:
             if request.session['REMOTE_ADDR'] != request.META['REMOTE_ADDR']:
                 self.attackDetected(attack, score, request)
                 return self.ERROR
         else:
             return self.ERROR
         return self.OK
-
 
     def checkFakeCookie(self, request, response, cookie_name='admin', cookie_value='false'):
         attack = "Fake cookie  modified"
@@ -239,7 +233,7 @@ class handling_middleware:
     # ab -n 1000 -c 5 http://127.0.0.1:8000/
     def checkSpeed(self, request):
         """
-            check 'amount_requests_last_minute' , 'amount_requests_last_minute_count' 
+            check 'amount_requests_last_minute' , 'amount_requests_last_minute_count'
             values added to session,
             if there is many requests per seconds
         """
@@ -268,8 +262,8 @@ class handling_middleware:
         return self.OK
 
     def isAttacker(self, request):
-        ban_in_seconds = 60 * 60 * 24
-        # ban_in_seconds = 0 for testing
+        # ban_in_seconds = 60 * 60 * 24
+        ban_in_seconds = 0  # for testing
         conn = self.getDb()
         db = conn.cursor()
         sessions_parameter = self.getSessionParameters(request)
