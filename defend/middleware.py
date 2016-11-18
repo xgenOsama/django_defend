@@ -262,7 +262,7 @@ class handling_middleware:
         return self.OK
 
     def isAttacker(self, request):
-        # ban_in_seconds = 60 * 60 * 24
+        #ban_in_seconds = 60 * 60 * 24
         ban_in_seconds = 0  # for testing
         conn = self.getDb()
         db = conn.cursor()
